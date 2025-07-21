@@ -1,46 +1,65 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flash-attn
-, python3Packages
-,
-}:
+{
+  fetchFromGitHub,
+  flash-attn,
+  lib,
+  pkgs,
+  formatron,
+  python3Packages,
+}: let
+  inherit (python3Packages.torch) cudaCapabilities cudaPackages cudaSupport;
+  inherit (cudaPackages) backendStdenv;
+in
+  python3Packages.buildPythonPackage rec {
+    pname = "exllamav3";
+    version = "0.0.5";
+    pyproject = true;
 
-buildPythonPackage {
-  pname = "exllamav3";
-  version = "unstable-2025-04-18";
-  pyproject = true;
+    src = fetchFromGitHub {
+      owner = "turboderp-org";
+      repo = "exllamav3";
+      rev = "v${version}";
+      hash = "sha256-0dWQ+EYtV61gyuYJ3YGLOs0QMQ7sMMqq7D9tHklJ55c=";
+    };
 
-  src = fetchFromGitHub {
-    owner = "turboderp-org";
-    repo = "exllamav3";
-    rev = "c44e56c73b2c67eee087c7195c9093520494d3bf";
-    hash = "sha256-NEIgBWJTCiwaKoq7R+6mMR7LcQ5enmzLGx64ortcjOo=";
-  };
+    build-system = with python3Packages; [
+      setuptools
+      wheel
+    ];
 
-  build-system = with python3Packages; [
-    setuptools
-    wheel
-  ];
+    buildInputs = with pkgs; [
+      # python3Packages.pybind11
+      cudatoolkit
+    ];
 
-  dependencies = with python3Packages; [
-    flash-attn
-    ninja
-    numpy
-    rich
-    safetensors
-    tokenizers
-    torch
-    typing-extensions
-  ];
+    preConfigure = ''
+      export CC=${lib.getExe' backendStdenv.cc "cc"}
+      export CXX=${lib.getExe' backendStdenv.cc "c++"}
+      export TORCH_CUDA_ARCH_LIST="8.9+PTX;8.9"
+      export FORCE_CUDA=1
+    '';
 
-  pythonImportsCheck = [
-    "exllamav3"
-  ];
+    env.CUDA_HOME = lib.optionalString cudaSupport (lib.getDev cudaPackages.cuda_nvcc);
 
-  meta = {
-    description = "An optimized quantization and inference library for running LLMs locally on modern consumer-class GPUs";
-    homepage = "https://github.com/turboderp-org/exllamav3";
-    license = lib.licenses.mit;
-  };
-}
+    dependencies = with python3Packages; [
+      flash-attn
+      ninja
+      numpy
+      rich
+      safetensors
+      tokenizers
+      torch
+      typing-extensions
+      formatron
+      marisa-trie
+    ];
+
+    pythonImportsCheck = [
+      "exllamav3"
+    ];
+
+    meta = {
+      description = "An optimized quantization and inference library for running LLMs locally on modern consumer-class GPUs";
+      homepage = "https://github.com/turboderp-org/exllamav3";
+      license = lib.licenses.mit;
+    };
+  }

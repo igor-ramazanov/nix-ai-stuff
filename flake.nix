@@ -17,73 +17,73 @@
     ];
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , ...
-    }:
-    let
-      inherit (nixpkgs) lib;
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  }: let
+    inherit (nixpkgs) lib;
 
-      systems = lib.systems.flakeExposed;
+    systems = lib.systems.flakeExposed;
 
-      forAllSystems = lib.genAttrs systems;
+    forAllSystems = lib.genAttrs systems;
 
-      nixpkgsFor = forAllSystems (system: import nixpkgs {
+    nixpkgsFor = forAllSystems (system:
+      import nixpkgs {
         inherit system;
         config = {
           allowUnfree = true;
           cudaSupport = true;
         };
       });
-    in
-    {
-      devShells = forAllSystems (system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs;
-              [
-                python3
-                cudatoolkit
-              ];
+  in {
+    devShells = forAllSystems (system: let
+      pkgs = nixpkgsFor.${system};
+    in {
+      default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          python3
+          cudatoolkit
+        ];
 
-            shellHook = ''
-              export CUDA_PATH=${pkgs.cudatoolkit}
-            '';
-          };
-        });
+        shellHook = ''
+          export CUDA_PATH=${pkgs.cudatoolkit}
+        '';
+      };
+    });
 
-      overlays.default = final: prev:
-        rec {
-          exllamav2 = final.callPackage ./pkgs/exllamav2.nix { inherit flash-attn; };
-          autogptq = final.callPackage ./pkgs/autogptq.nix { inherit rouge; };
-          ava-prebuilt = final.callPackage ./pkgs/ava/prebuilt.nix { };
-          ava = final.callPackage ./pkgs/ava { };
-          ava-headless = final.callPackage ./pkgs/ava { headless = true; };
-          tensor_parallel = final.callPackage ./pkgs/tensor_parallel.nix { };
-          lycoris-lora = final.callPackage ./pkgs/lycoris-lora.nix { };
-          open-clip-torch = final.callPackage ./pkgs/open-clip-torch.nix { };
-          dadaptation = final.callPackage ./pkgs/dadaptation.nix { };
-          prodigyopt = final.callPackage ./pkgs/prodigyopt.nix { };
-          kohya_ss = final.callPackage ./pkgs/kohya_ss {
-            inherit dadaptation prodigyopt;
-          };
-          rouge = final.callPackage ./pkgs/rouge.nix { };
-          flash-attn = final.callPackage ./pkgs/flash-attention.nix { };
-          kbnf = final.callPackage ./pkgs/kbnf.nix { };
-          general-sam = final.callPackage ./pkgs/general-sam.nix { };
-          formatron = final.callPackage ./pkgs/formatron.nix { kbnf = kbnf; general-sam = general-sam; exllamav2 = exllamav2; };
-          tabbyapi = final.callPackage ./pkgs/tabbyapi.nix { kbnf = kbnf; formatron = formatron; exllamav2 = exllamav2; };
-        };
-
-      packages = forAllSystems (system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
-        lib.makeScope pkgs.newScope (final: self.overlays.default final pkgs)
-      );
+    overlays.default = final: prev: rec {
+      exllamav2 = final.callPackage ./pkgs/exllamav2.nix {inherit flash-attn;};
+      exllamav3 = final.callPackage ./pkgs/exllamav3.nix {inherit flash-attn;};
+      autogptq = final.callPackage ./pkgs/autogptq.nix {inherit rouge;};
+      ava-prebuilt = final.callPackage ./pkgs/ava/prebuilt.nix {};
+      ava = final.callPackage ./pkgs/ava {};
+      ava-headless = final.callPackage ./pkgs/ava {headless = true;};
+      tensor_parallel = final.callPackage ./pkgs/tensor_parallel.nix {};
+      lycoris-lora = final.callPackage ./pkgs/lycoris-lora.nix {};
+      open-clip-torch = final.callPackage ./pkgs/open-clip-torch.nix {};
+      dadaptation = final.callPackage ./pkgs/dadaptation.nix {};
+      prodigyopt = final.callPackage ./pkgs/prodigyopt.nix {};
+      kohya_ss = final.callPackage ./pkgs/kohya_ss {
+        inherit dadaptation prodigyopt;
+      };
+      rouge = final.callPackage ./pkgs/rouge.nix {};
+      flash-attn = final.callPackage ./pkgs/flash-attention.nix {};
+      kbnf = final.callPackage ./pkgs/kbnf.nix {};
+      general-sam = final.callPackage ./pkgs/general-sam.nix {};
+      formatron = final.callPackage ./pkgs/formatron.nix {
+        kbnf = kbnf;
+        general-sam = general-sam;
+        exllamav2 = exllamav2;
+      };
+      tabbyapi = final.callPackage ./pkgs/tabbyapi.nix {inherit kbnf formatron exllamav2 exllamav3;};
     };
+
+    packages = forAllSystems (
+      system: let
+        pkgs = nixpkgsFor.${system};
+      in
+        lib.makeScope pkgs.newScope (final: self.overlays.default final pkgs)
+    );
+  };
 }

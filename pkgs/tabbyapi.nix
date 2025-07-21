@@ -1,21 +1,22 @@
-{ lib
-, fetchFromGitHub
-, exllamav2
-, python3Packages
-, formatron
-, kbnf
-,
+{
+  lib,
+  fetchFromGitHub,
+  exllamav2,
+  exllamav3,
+  python3Packages,
+  formatron,
+  kbnf,
 }:
 python3Packages.buildPythonApplication {
   pname = "tabbyapi";
-  version = "unstable-2025-04-16";
+  version = "unstable-2025-07-19";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "theroyallab";
     repo = "tabbyAPI";
-    rev = "6bb5f8f599d617f94af85e0818c8a841fc0ed806";
-    hash = "sha256-Ovj/8T98pSWuLtSbfGVWf++ywSsa+PgXHiHxg6W7/m4=";
+    rev = "ab04a6ed6011916e6605edc20c16807c5adb7fe8";
+    hash = "sha256-nOtv4gY+fftYtMOQckUxz2b2Z8NoFafqE+M+s1wmDgQ=";
   };
 
   build-system = with python3Packages; [
@@ -48,6 +49,7 @@ python3Packages.buildPythonApplication {
     uvicorn
     uvloop # linux and x86_64
     exllamav2
+    exllamav3
   ];
 
   postPatch = ''
